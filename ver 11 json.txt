@@ -1,0 +1,477 @@
+```json
+{
+  "_meta": {
+    "specification": "CAESAR II Neutral File (.cii)",
+    "version_context": "CAESAR II User's Guide 11",
+    "file_type": "ASCII Text File",
+    "section_delimiter": "#$",
+    "data_transfer": "Bi-directional (100% of _A input file data)",
+    "references": ""
+  },
+  "Memory_Allocation_Constants": {
+    "N1": "Base memory allocation quantity (Max Elements)",
+    "N2": "N1 / 2",
+    "N3": "N1 / 3",
+    "N4": "N1 / 4",
+    "N5": "N1 / 5",
+    "N6": "N1 / 13.33",
+    "reference": ""
+  },
+  "Sections": [
+    {
+      "Section_Header": "#$ VERSION",
+      "Description": "Provides section header information",
+      "Format_Rules": [
+        {
+          "Line": 1,
+          "FORTRAN_Format": "(2X, 2G13.6, I8)",
+          "Variables": [
+            {"Name": "GVERSION", "Type": "Real", "Description": "Major version number of CAESAR II"},
+            {"Name": "RVERSION", "Type": "Real", "Description": "Specific CAESAR II version generating the file"},
+            {"Name": "ICODEPAGE", "Type": "Integer", "Description": "Windows (ANSI) code page identifier (e.g., 1252)"}
+          ]
+        },
+        {
+          "Lines": "2-61",
+          "FORTRAN_Format": "(2X, A75)",
+          "Description": "Reserved for CAESAR II title-page text. Last line indicates creator if blank."
+        }
+      ],
+      "reference": ""
+    },
+    {
+      "Section_Header": "#$ CONTROL",
+      "Description": "Defines overall file control metrics and auxiliary block counts",
+      "Format_Rules": [
+        {
+          "Line": 1,
+          "FORTRAN_Format": "(2X, 6I13)",
+          "Variables": ["NUMELT", "NUMNOZ", "NOHGRS", "NONAM", "NORED", "NUMFLG"]
+        },
+        {
+          "Lines": "2-4",
+          "FORTRAN_Format": "(2X, 6I13)",
+          "Description": "13 auxiliary counts + 1 vertical axis indicator",
+          "Variables": [
+            "Num_Bend_Aux", "Num_Rigid_Aux", "Num_ExpJoint_Aux", "Num_Restraint_Aux", 
+            "Num_Displacement_Aux", "Num_ForceMoment_Aux", "Num_UniformLoad_Aux", 
+            "Num_WindLoad_Aux", "Num_Offset_Aux", "Num_Allowable_Aux", 
+            "Num_Intersection_Aux", "IZUP_Flag (0=-Y vertical, 1=-Z vertical)", 
+            "Num_Equipment_Limits_Aux"
+          ]
+        }
+      ],
+      "reference": ""
+    },
+    {
+      "Section_Header": "#$ ELEMENTS",
+      "Description": "Contains integer and real data for each element in the input file",
+      "Format_Rules": [
+        {
+          "Array": "REL",
+          "Dimension": "(N1, 98)",
+          "Write_Block": "9 lines per element",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Items_1_to_53": [
+            "FROM node", "TO node", "Delta X", "Delta Y", "Delta Z", "Diameter (OD)", 
+            "Wall Thickness", "Insulation Thickness", "Corrosion Allowance",
+            "Thermal Exp Coeff #1 (or Temp)", "Thermal Exp Coeff #2", "Thermal Exp Coeff #3", 
+            "Thermal Exp Coeff #4", "Thermal Exp Coeff #5", "Thermal Exp Coeff #6",
+            "Thermal Exp Coeff #7", "Thermal Exp Coeff #8", "Thermal Exp Coeff #9",
+            "Pressure #1", "Pressure #2", "Pressure #3", "Pressure #4", "Pressure #5", 
+            "Pressure #6", "Pressure #7", "Pressure #8", "Pressure #9", 
+            "Elastic Modulus (cold)", "Empty/Spare (29)", "Pipe Density", "Insulation Density",
+            "Fluid Density", "Minus Mill Tolerance", "Plus Mill Tolerance", "Seam Weld (1=Yes, 0=No)",
+            "Hydro Pressure", "Elastic Modulus (Hot #1)", "Elastic Modulus (Hot #2)",
+            "Elastic Modulus (Hot #3)", "Elastic Modulus (Hot #4)", "Elastic Modulus (Hot #5)",
+            "Elastic Modulus (Hot #6)", "Elastic Modulus (Hot #7)", "Elastic Modulus (Hot #8)",
+            "Elastic Modulus (Hot #9)", "wL Factor", "Element Orient Angle (To End)", 
+            "Element Orient Angle (From End)", "Cladding Thickness", "Cladding Density",
+            "Insulation+Cladding Weight/Length", "Refractory Thickness", "Refractory Density"
+          ],
+          "Note": "Non-specified real values default to 0.0"
+        },
+        {
+          "Array": "String Data",
+          "FORTRAN_Format_Strings": "(7X, I5, 1X, A500)",
+          "Variables": ["Element Name", "Line Number"]
+        },
+        {
+          "Array": "Color Data",
+          "FORTRAN_Format_Color": "(2X, 6G13.6)",
+          "Variables": ["Line Color", "Line Visibility"]
+        },
+        {
+          "Array": "IEL (Pointers)",
+          "Dimension": "(N1, 18)",
+          "Write_Block": "3 lines per element",
+          "FORTRAN_Format": "(2X, 6I13)",
+          "Items_1_to_15": [
+            "Ptr_Bend", "Ptr_Rigid", "Ptr_ExpJoint", "Ptr_Restraint", "Ptr_Displacement", 
+            "Ptr_ForceMoment", "Ptr_UniformLoad", "Ptr_WindLoad", "Ptr_Offset", "Ptr_Allowable", 
+            "Ptr_Intersection", "Ptr_NodeName", "Ptr_Reducer", "Ptr_Flange", "Ptr_Equipment_Check"
+          ]
+        }
+      ],
+      "reference": ""
+    },
+    {
+      "Section_Header": "#$ AUX_DATA",
+      "Description": "Sub-sections corresponding to auxiliary element data arrays (dynamically allocated based on N-proportions)",
+      "Subsections": [
+        {
+          "Header": "#$ NODENAME",
+          "Array": "NAM",
+          "Dimension": "(N6, 2)",
+          "FORTRAN_Format": "(2X, A10, 16X, A10)",
+          "Variables": ["FROM_Node_Name", "TO_Node_Name"],
+          "reference": ""
+        },
+        {
+          "Header": "#$ BEND",
+          "Array": "BND",
+          "Dimension": "(N3, 15)",
+          "Write_Block": "3 lines per bend",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Bend radius", "Type (1=single flange, 2=double flange, 0=welded)", "Angle to node #1",
+            "Node #1", "Angle to node #2", "Node #2", "Angle to node #3", "Node #3", "Miter cuts",
+            "Fitting thickness", "Seam Weld (1=Y, 0=N)", "Bend flexibility (K)", 
+            "Weld strength reduction WL", "Overlay Thickness"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ RIGID",
+          "Array": "RIG",
+          "Dimension": "(N3, 1)",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": ["Rigid weight"],
+          "reference": ""
+        },
+        {
+          "Header": "#$ EXPJT",
+          "Array": "EXP",
+          "Dimension": "(N5, 5)",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Axial stiffness", "Transverse stiffness", "Bending stiffness", 
+            "Torsional stiffness", "Effective inside bellows diameter"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ RESTRANT",
+          "Array": "RES",
+          "Dimension": "(N2, 36)",
+          "Write_Block_Reals": "2 lines x 6 iterations = 12 lines",
+          "FORTRAN_Format_Reals": "(2X, 6G13.6)",
+          "Real_Variables": [
+            "Restraint node", "Restraint type (1-62)", "Stiffness", "Gap", 
+            "Friction coef", "Connecting node", "X dir cosine", "Y dir cosine", "Z dir cosine"
+          ],
+          "Write_Block_Strings": "2 lines x 6 iterations = 12 lines",
+          "FORTRAN_Format_Strings": "(7X, I5, 1X, A100)",
+          "String_Variables": ["Support Tag", "Support GUID"],
+          "reference": ""
+        },
+        {
+          "Header": "#$ DISPLMNT",
+          "Array": "DIS",
+          "Dimension": "(N3, 110)",
+          "Write_Block": "10 lines x 2 displacements = 20 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Node Number", 
+            "Vectors 1-9 (DX, DY, DZ, RX, RY, RZ)"
+          ],
+          "Note": "Free DOFs use 9999.99",
+          "reference": ""
+        },
+        {
+          "Header": "#$ FORCMNT",
+          "Array": "FOR",
+          "Dimension": "(N3, 38)",
+          "Write_Block": "10 lines x 2 Force/Moments = 20 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Node Number", 
+            "Vectors 1-9 (FX, FY, FZ, MX, MY, MZ)"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ UNIFORM",
+          "Array": "UNI",
+          "Dimension": "(N5, 36)",
+          "Write_Block": "6 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "3 Vectors: UX, UY, UZ, G-flag (1=G's, 0=Force/Len)"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ WIND",
+          "Array": "WIND",
+          "Dimension": "(N5, 6)",
+          "Write_Block": "1 line",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Type (0=Wind, 1=Wave, 2=Off)", "Shape factor / Drag Coef", 
+            "Added mass coef", "Lift coef", "Marine growth", "Marine growth density"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ OFFSETS",
+          "Array": "OFF",
+          "Dimension": "(N5, 6)",
+          "Write_Block": "1 line",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "FROM offset X", "FROM offset Y", "FROM offset Z", 
+            "TO offset X", "TO offset Y", "TO offset Z"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ ALLOWBLS",
+          "Array": "ALL",
+          "Dimension": "(N5, 153)",
+          "Write_Block": "26 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables_1_to_32": [
+            "Cold allowable", "Hot allow #1-#3", "Cyclic red #1-#3", 
+            "Eff", "Sy", "Fac", "Pmax", "Piping code id", "Hot allow #4-#9",
+            "Cyclic red #4-#9"
+          ],
+          "Variables_Fatigue": [
+            "Items 25-40: 8 BW/Class D pairs (Cycles, Stresses)",
+            "Items 41-56: 8 FW/Class E pairs",
+            "Items 57-72: 8 Class F pairs (TD/12)",
+            "Items 73-88: 8 Class G pairs (TD/12)",
+            "Items 89-104: 8 Class W pairs (TD/12)"
+          ],
+          "Variables_Modulus_Yield": [
+            "Item 105: Elastic Modulus corr", "Item 106: Contextual Code Value",
+            "Item 107: UTS ambient", "Item 108: Sy/St value", 
+            "Items 109-117: 9 SY values at temp", "Items 118-126: 9 UTS values at temp"
+          ],
+          "Variables_ISO_DNV": [
+            "Items 130-136: ISO 14692 data", "Items 137-149: DNV 2017 data",
+            "Items 127-153 otherwise 0.000000"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ SIF&TEES",
+          "Array": "SIF",
+          "Dimension": "(N4, 60)",
+          "Write_Block": "5 lines x 2 tees = 10 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Node", "Type", "In-Plane SIF", "Out-Plane SIF", "Weld mismatch (d)", 
+            "Fillet", "Pad Thk", "Ftg Ro", "Crotch R", "Weld ID", "B1", "B2", 
+            "In-Plane Index", "Out-Plane Index", "Torsion SIF", "Axial SIF", 
+            "Pressure SIF", "Pressure Index", "19-22 TD/12 metrics", 
+            "23-24 Note options", "Axial Index", "Torsion Index"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ REDUCERS",
+          "Array": "RED",
+          "Dimension": "(N6, 5)",
+          "Write_Block": "1 line per reducer",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Second Dia", "Second Thk", "Alpha angle", "R1 (TD/12)", "R2 (TD/12)"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ FLANGES",
+          "Write_Block": "12 lines (72 values)",
+          "FORTRAN_Format": "(2X, 6G13.6) except Line 4 (2X, A40)",
+          "Variables": [
+            "Line 1 (1-5): FROM/TO, METHOD, GASKET/BOLT DIA, BOLT AREA, SYC",
+            "Line 2 (6-11): SY1 to SY6",
+            "Line 3 (12-14): SY7 to SY9",
+            "Line 4 (15-24): CLASS NAME (A40)",
+            "Lines 5-8 (25-48): 24 Rating Temperatures",
+            "Lines 9-12 (49-72): 24 Rating Pressures"
+          ],
+          "reference": ""
+        },
+        {
+          "Header": "#$ EQUIPMNT",
+          "Write_Block": "6 lines (2 sets of 17 values)",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "Node Number", "Limiting FX", "Limiting FY", "Limiting FZ", "Limiting MX", 
+            "Limiting MY", "Limiting MZ", "CosX", "CosY", "CosZ", "Flange rating",
+            "Interaction method (0=abs, 1=SRSS, 2=Unity)", "Spares 13-17 (0.00)"
+          ],
+          "reference": ""
+        }
+      ],
+      "reference": ""
+    },
+    {
+      "Section_Header": "#$ MISCEL_1",
+      "Description": "Contains Material ID, Nozzle data, Hanger data, Execution Options",
+      "Sub_Blocks": [
+        {
+          "Type": "Material ID",
+          "Array": "RRMAT",
+          "Dimension": "(N1)",
+          "Write_Block": "NLINES = ceil(NUMELT / 6)",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Range": "1 to 699",
+          "reference": ""
+        },
+        {
+          "Type": "Nozzles",
+          "Array": "VFLEX",
+          "Write_Block": "4 lines per nozzle (22 values)",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Indicators": "0=WRC-297, 1=API-650, 2=PD5500, 3=Custom",
+          "Variables_Mapped": [
+            "Node", "Vessel/Tank Node", "Indicator", "Nozzle OD", "Nozzle Thk",
+            "Vessel OD", "Vessel Thk", "Pad Thk", "Stiffener Dists", 
+            "Vessel CosX/Y/Z", "Vessel Temp", "Vessel Mat #", "API/Custom Specifics (heights, stiffness)"
+          ],
+          "reference": ""
+        },
+        {
+          "Type": "Hangers",
+          "FORTRAN_Lines": [
+            {
+              "Line": 1, 
+              "Format": "(2X, I13, 5G13.6)", 
+              "Variables": ["IDFTABLE", "DEFVAR", "DEFRIG", "DEFMXTRAVEL", "DEFSHTSPR", "DEFMUL"]
+            },
+            {
+              "Line": 2, 
+              "Format": "(2X, 5I13)", 
+              "Variables": ["IDFOPER", "IACTCLD", "IHGRLDS", "IACTUAL", "IMULTIOPTS"]
+            },
+            {
+              "Line": "Array Blocks (Dim N5)",
+              "Format": "(2X, 6I13)",
+              "Arrays": [
+                "IHGRNODE (7 lines)", "IHGRFREE (1 line/hanger)", "IHGRNUM (7 lines)", 
+                "IHGRTABLE (7 lines)", "IHGRSHORT (7 lines)", "IHGRCN (7 lines)"
+              ]
+            },
+            {
+              "Line": "HGRDAT (11, N5)",
+              "Format": "(2X, 6G13.6)",
+              "Description": "2 lines per hanger",
+              "Variables": [
+                "Stiffness", "Allow Var", "Rigid Disp", "Space", "Cold Load #1", 
+                "Hot Load #1", "Op Load", "Max Travel", "Multi Load Option", 
+                "Hardware Wt", "Constant Effort Load"
+              ]
+            },
+            {
+              "Line": "Tags",
+              "Format": "(7X, I5, 1X, A100)",
+              "Variables": ["Hanger Tag", "Hanger GUID (2 lines per hanger)"]
+            }
+          ],
+          "reference": ""
+        },
+        {
+          "Type": "Execution Options",
+          "FORTRAN_Lines": [
+            {
+              "Line": 1,
+              "Format": "(2X, 4I13, G13.6, I13)",
+              "Variables": ["Print Rigids", "Print Alphas", "Bourdon", "Branch Prompts", "Thermal Bowing dT", "Liberal Stress"]
+            },
+            {
+              "Line": 2,
+              "Format": "(2X, I13, 2G13.6, 3I13)",
+              "Variables": ["Stress Stiffening", "Ambient Temp", "FRP Expansion", "Optimizer", "Next Node"]
+            },
+            {
+              "Line": 3,
+              "Format": "(2X, 4I13, G13.6, I13)",
+              "Variables": ["Final Ordering", "Collins Ordering", "Degree Determ", "User Control", "FRP Shear", "Laminate Type"]
+            },
+            {
+              "Line": 4,
+              "Format": "(2X, I13)",
+              "Variables": ["North Arrow"]
+            }
+          ],
+          "reference": ""
+        }
+      ]
+    },
+    {
+      "Section_Header": "#$ UNITS",
+      "Description": "Defines conversion constants and labels",
+      "Format_Rules": [
+        {
+          "Block_1": "Constants",
+          "Lines": "4 lines",
+          "FORTRAN_Format": "(2X, 6G13.6)",
+          "Variables": [
+            "CNVLEN", "CNVFOR", "CNVMAS", "CNVMIN", "CNVMOU", "CNVSTR", "CNVTSC", 
+            "CNVTOF", "CNVPRE", "CNVYM", "CNVPDN", "CNVIDN", "CNVFDN", "CNVTSF", 
+            "CNVUNI", "CNVWND", "CNVELE", "CNVCLN", "CNVDIA", "CNVTHK"
+          ]
+        },
+        {
+          "Block_2": "Labels",
+          "Lines": "24 lines (1 per variable)",
+          "Variables": [
+            "CCVNAME(A15)", "CCVNOM(A3)", "CCVLEN(A3)", "CCVFOR(A3)", "CCVMAS(A3)", 
+            "CCVMIN(A6)", "CCVMOU(A6)", "CCVSTR(A10)", "CCVTSC(A1)", "CCVTOF(A1)", 
+            "CCVPRE(A10)", "CCVYM", "CCVPDN(A10)", "CCVIDN(A10)", "CCVFDN(A10)", 
+            "CCVTSF(A7)", "CCVRSF(A10)", "CCVUNI(A7)", "CCVGLD(A3)", "CCVWND(A10)", 
+            "CCVELE(A3)", "CCVCLN(A3)", "CCVDIA(A3)", "CCVTHK(A3)"
+          ]
+        }
+      ],
+      "reference": ""
+    },
+    {
+      "Section_Header": "#$ COORDS",
+      "Description": "Optional section specifying starting XYZ coordinates of disconnected segments",
+      "Format_Rules": [
+        {
+          "Line": 1,
+          "FORTRAN_Format": "(2X, I13)",
+          "Variables": ["NXYZ (count)"]
+        },
+        {
+          "Lines": "NXYZ lines",
+          "FORTRAN_Format": "(2X, I13, 3F13.4)",
+          "Variables": ["INODE", "XCORD", "YCORD", "ZCORD"]
+        }
+      ],
+      "reference": ""
+    }
+  ],
+  "Alternative_Input_Module": {
+    "Name": "CAESAR II Data Matrix",
+    "Description": "Simplified geometry text import requiring user manual load/restraint additions",
+    "Line_Format": "1 line per pipe element containing 12 generic parameters",
+    "Variables": [
+      {"Name": "ELMT", "Description": "Element Number"},
+      {"Name": "N1", "Description": "From Node"},
+      {"Name": "N2", "Description": "To Node"},
+      {"Name": "DX", "Description": "Delta X"},
+      {"Name": "DY", "Description": "Delta Y (Vertical)"},
+      {"Name": "DZ", "Description": "Delta Z"},
+      {"Name": "DIAM", "Description": "Pipe Diameter (OD)"},
+      {"Name": "THK", "Description": "Pipe Thickness"}
+    ],
+    "reference": ""
+  }
+}
+```
