@@ -30,6 +30,10 @@ jobs:
         run: |
           pytest tests/
 
+      - name: Build Web Bundle
+        run: |
+          python build_web.py
+
       - name: Deploy
         # Replace this with your actual deployment script or action
         run: echo "Deploying from branch main to root"

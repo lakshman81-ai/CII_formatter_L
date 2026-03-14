@@ -151,32 +151,24 @@
 <py-config>
     packages = ["pandas", "pydantic"]
 
-    # Mount the local Python source files explicitly so PyScript can import them on static hosts
+    # Mount the bundled Python source code zip archive into the Pyodide filesystem
     [[fetch]]
-    from = "src/cii_roundtrip"
-    to = "src/cii_roundtrip"
-    files = [
-        "__init__.py",
-        "comparator.py",
-        "export_csv.py",
-        "fortran_utils.py",
-        "import_csv.py",
-        "inference.py",
-        "logger.py",
-        "models.py",
-        "optimizer.py",
-        "parser.py",
-        "serializer.py"
-    ]
+    from = "."
+    files = ["cii_source.zip"]
 </py-config>
 
 <!-- PyScript Python Code -->
-<py-script>
+<script type="py">
 import asyncio
 import js
 from pyodide.ffi import create_proxy
 from pyodide.http import pyfetch
 import json
+
+# Unpack the source code from the zip archive
+import zipfile
+with zipfile.ZipFile("cii_source.zip", "r") as zip_ref:
+    zip_ref.extractall(".")
 
 # Import our actual repository modules
 import sys
@@ -306,7 +298,7 @@ def py_download_cii():
         py_trigger_download(name, generated_cii_content, "text/plain")
 js.py_download_cii_proxy = create_proxy(py_download_cii)
 
-</py-script>
+</script>
 
 <!-- JS UI Bindings -->
 <script>
