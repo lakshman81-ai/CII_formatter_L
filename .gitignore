@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest
+.pytest_cache/
+
+# Local logs and output files
+logs/*.md
+*.csv
+*.json
+*.neu
+*.CII
+!SAMPLE 2/BENCHMARK.CII
+
+# Environment
+.venv
+env/
+venv/
+ENV/
