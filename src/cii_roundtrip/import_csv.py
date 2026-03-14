@@ -53,6 +53,12 @@ def import_csv_to_cii(csv_path: str, base_cii_data: Optional[ParsedCII] = None) 
         color_line = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         raw_rel = []
         raw_iel = []
+        exact_rel_lines = []
+        exact_string_name_line = ""
+        exact_line_number_line = ""
+        exact_color_line = ""
+        exact_iel_lines = []
+
         pipe_ref = str(row["PIPELINE-REFERENCE"]) if "PIPELINE-REFERENCE" in df.columns and pd.notna(row["PIPELINE-REFERENCE"]) else ""
 
         if base_cii_data is not None and idx < len(base_cii_data.elements):
@@ -77,16 +83,23 @@ def import_csv_to_cii(csv_path: str, base_cii_data: Optional[ParsedCII] = None) 
 
             if not rel_changed:
                 raw_rel = orig_el.raw_rel_strings
+                exact_rel_lines = orig_el.exact_rel_lines
                 rel = orig_el.rel # ensure exact precision representation matches
 
             if not iel_changed:
                 raw_iel = orig_el.raw_iel_strings
+                exact_iel_lines = orig_el.exact_iel_lines
 
             string_name = orig_el.string_name
+            exact_string_name_line = orig_el.exact_string_name_line
+
             # If the pipe_ref string hasn't semantically changed, keep exact original formatting
             if pipe_ref.strip() == orig_el.line_number.strip():
                 pipe_ref = orig_el.line_number
+                exact_line_number_line = orig_el.exact_line_number_line
+
             color_line = orig_el.color_line
+            exact_color_line = orig_el.exact_color_line
 
         el_block = ElementBlock(
             elmt_id=int(idx) + 1,
@@ -96,7 +109,12 @@ def import_csv_to_cii(csv_path: str, base_cii_data: Optional[ParsedCII] = None) 
             color_line=color_line,
             iel=iel,
             raw_rel_strings=raw_rel,
-            raw_iel_strings=raw_iel
+            raw_iel_strings=raw_iel,
+            exact_rel_lines=exact_rel_lines,
+            exact_string_name_line=exact_string_name_line,
+            exact_line_number_line=exact_line_number_line,
+            exact_color_line=exact_color_line,
+            exact_iel_lines=exact_iel_lines
         )
         elements.append(el_block)
 
