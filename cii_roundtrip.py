@@ -33,6 +33,10 @@ def main():
         p = Parser(args.input, n1_allocation=2000)
         data = p.parse()
 
+        if args.table:
+            print(f"Exporting table to {args.table}...")
+            generate_custom_csv(data, export_path=args.table)
+
         if args.table_in:
             print(f"Importing table {args.table_in} over {args.input} base data...")
             data = import_csv_to_cii(args.table_in, base_cii_data=data)
@@ -41,10 +45,6 @@ def main():
         if args.optimize:
             print("Running Optimization Loop...")
             data, opt_report = run_optimization_loop(data)
-
-        if args.table:
-            print(f"Exporting table to {args.table}...")
-            generate_custom_csv(data, export_path=args.table)
 
         print(f"Serializing to {args.out}...")
         serialize_to_cii(data, args.out)

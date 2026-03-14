@@ -165,15 +165,28 @@ class Parser:
                 self.idx += 1
 
             # String Data: Element Name
-            string_name = parse_fortran_string(self.lines[self.idx])
+            # The original string can just be grabbed entirely
+            string_name = self.lines[self.idx].strip()
+            if len(string_name) > 0 and string_name[0].isdigit():
+                string_name = string_name.split(' ', 1)[-1].strip()
+            elif string_name == '0':
+                string_name = ""
             self.idx += 1
 
             # String Data: Line Number
-            line_number = parse_fortran_string(self.lines[self.idx])
+            line_number = self.lines[self.idx].strip()
+            if line_number == '10 unassigned':
+                pass # keep exact
+            elif len(line_number) > 0 and line_number[0].isdigit():
+                # Extract past the length digit
+                line_number = line_number.split(' ', 1)[-1].strip()
+            elif line_number == '0':
+                line_number = ""
             self.idx += 1
 
             # Color Data (2X, 6G13.6)
             color_r, color_s = parse_fortran_reals(self.lines[self.idx])
+            rel_strings.extend(color_s) # Append the color strings to REL raw strings to perfectly reconstruct
             self.idx += 1
 
             # Pointers Data (3 lines of 2X, 6I13, total 18 values)

@@ -66,35 +66,56 @@ def serialize_to_cii(data: ParsedCII, filepath: str):
         f.write("#$ ELEMENTS\n")
         for el in data.elements:
             # REL
+            # CAESAR II format is explicitly 9 lines of 6 floats per element.
+            # If we have exact strings (from parsing original), just emit them in groups of 6.
             if el.raw_rel_strings and len(el.raw_rel_strings) >= 53:
-                # Optimized fast-path: exact string reconstruction
-                chunks = [el.raw_rel_strings[i:i+6] for i in range(0, 53, 6)]
-                for chunk in chunks:
-                    f.write("  " + "".join(chunk) + "\n")
+                chunks = [el.raw_rel_strings[i:i+6] for i in range(0, len(el.raw_rel_strings), 6)]
+                # Ensure we only write the 9 REL lines
+                for chunk in chunks[:9]:
+                    if len(chunk) > 0:
+                        f.write("  " + "".join(chunk) + "\n")
             else:
                 # Re-serialization path (if values were modified)
-                # Pad to 53 values
+                # Pad to 54 values
                 rel = copy.deepcopy(el.rel)
-                while len(rel) < 53: rel.append(0.0)
-                chunks = [rel[i:i+6] for i in range(0, 53, 6)]
+                while len(rel) < 54: rel.append(0.0)
+                chunks = [rel[i:i+6] for i in range(0, 54, 6)]
                 for chunk in chunks:
                     f.write(write_fortran_reals(chunk, [13]*len(chunk), [6]*len(chunk)) + "\n")
 
             # String Data
             # Format: 7X, I5, 1X, A500
             name_len = len(el.string_name.strip())
-            f.write(f"       {name_len:5} {el.string_name}\n")
+            if name_len == 0 and not el.string_name:
+                # CAESAR II tends to have "    0 \n" when empty
+                f.write(f"           0 \n")
+            else:
+                f.write(f"       {name_len:5} {el.string_name}\n")
+
             line_len = len(el.line_number.strip())
-            f.write(f"       {line_len:5} {el.line_number}\n")
+            if line_len == 0 and not el.string_name:
+                f.write(f"           0 \n")
+            else:
+                # We preserved exactly from parser earlier
+                if el.line_number == "10 unassigned":
+                    f.write(f"          10 unassigned\n")
+                else:
+                    f.write(f"       {line_len:5} {el.line_number}\n")
 
             # Color Line
-            f.write("  " + "".join(el.raw_rel_strings[53:55]) + "\n" if len(el.raw_rel_strings)>54 else write_fortran_reals(el.color_line, [13,13], [6,6]) + "\n")
+            if len(el.raw_rel_strings) > 54:
+                # Sometimes color lines have -1 -1
+                f.write("  " + "".join(el.raw_rel_strings[54:]) + "\n")
+            else:
+                # Fallback defaults
+                f.write("             -1           -1\n")
 
             # IEL
             if el.raw_iel_strings and len(el.raw_iel_strings) >= 15:
                 chunks = [el.raw_iel_strings[i:i+6] for i in range(0, 18, 6)]
                 for chunk in chunks:
-                    f.write("  " + "".join(chunk) + "\n")
+                    if len(chunk) > 0:
+                        f.write("  " + "".join(chunk) + "\n")
             else:
                 iel = copy.deepcopy(el.iel)
                 while len(iel) < 18: iel.append(0)
@@ -103,17 +124,18 @@ def serialize_to_cii(data: ParsedCII, filepath: str):
                     f.write(write_fortran_ints(chunk, [13]*len(chunk)) + "\n")
 
         # Aux Data is preserved as exactly parsed due to raw dictionary caching strategy
-        f.write("#$ AUX_DATA\n")
-        for k, lines in data.aux_data.items():
-            f.write(f"#$ {k}\n")
-            for line in lines:
-                if line["type"] == "raw":
-                    f.write(f"{line['raw']}\n")
-                elif line["type"] == "string":
-                    f.write(f"{line['raw']}\n")
-                elif line["type"] == "reals":
-                    # Exact string matching optimization applied
-                    f.write("  " + "".join(line["raw"]) + "\n")
+        if hasattr(data, "aux_data") and data.aux_data:
+            f.write("#$ AUX_DATA\n")
+            for k, lines in data.aux_data.items():
+                f.write(f"#$ {k}\n")
+                for line in lines:
+                    if line["type"] == "raw":
+                        f.write(f"{line['raw']}\n")
+                    elif line["type"] == "string":
+                        f.write(f"{line['raw']}\n")
+                    elif line["type"] == "reals":
+                        # Exact string matching optimization applied
+                        f.write("  " + "".join(line["raw"]) + "\n")
 
         # Miscel, Units, Coords
         if "MISCEL_1" in data.raw_sections and data.raw_sections["MISCEL_1"]:

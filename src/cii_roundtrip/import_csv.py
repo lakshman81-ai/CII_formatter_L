@@ -44,18 +44,59 @@ def import_csv_to_cii(csv_path: str, base_cii_data: Optional[ParsedCII] = None) 
             else:
                 iel.append(0)
 
-        # Basic text
+        # If we have a base CII, attempt to map back to the exact element to preserve raw caching
+        # This guarantees 1:1 byte matching for unmodified elements.
+        string_name = ""
+        # The line number comes from PIPELINE-REFERENCE, but if it wasn't modified in the CSV
+        # we'd want to preserve exactly how it was to avoid spacing differences. We'll default
+        # to the exact original strings if the numerical REL/IEL didn't change and the text didn't change.
+        color_line = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        raw_rel = []
+        raw_iel = []
         pipe_ref = str(row["PIPELINE-REFERENCE"]) if "PIPELINE-REFERENCE" in df.columns and pd.notna(row["PIPELINE-REFERENCE"]) else ""
+
+        if base_cii_data is not None and idx < len(base_cii_data.elements):
+            orig_el = base_cii_data.elements[idx]
+
+            # Check if any numerical values actually changed from the base data.
+            # Note: Pandas read_csv can sometimes parse floats with slight precision
+            # differences (e.g. 10.0 vs 10.0). We use a small epsilon for float comparison.
+            rel_changed = False
+            for i, val in enumerate(rel):
+                orig_val = orig_el.rel[i] if i < len(orig_el.rel) else 0.0
+                if abs(val - orig_val) > 1e-5:
+                    rel_changed = True
+                    break
+
+            iel_changed = False
+            for i, val in enumerate(iel):
+                orig_val = orig_el.iel[i] if i < len(orig_el.iel) else 0
+                if val != orig_val:
+                    iel_changed = True
+                    break
+
+            if not rel_changed:
+                raw_rel = orig_el.raw_rel_strings
+                rel = orig_el.rel # ensure exact precision representation matches
+
+            if not iel_changed:
+                raw_iel = orig_el.raw_iel_strings
+
+            string_name = orig_el.string_name
+            # If the pipe_ref string hasn't semantically changed, keep exact original formatting
+            if pipe_ref.strip() == orig_el.line_number.strip():
+                pipe_ref = orig_el.line_number
+            color_line = orig_el.color_line
 
         el_block = ElementBlock(
             elmt_id=int(idx) + 1,
             rel=rel,
-            string_name="",
+            string_name=string_name,
             line_number=pipe_ref,
-            color_line=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            color_line=color_line,
             iel=iel,
-            raw_rel_strings=[],
-            raw_iel_strings=[]
+            raw_rel_strings=raw_rel,
+            raw_iel_strings=raw_iel
         )
         elements.append(el_block)
 
