@@ -34,6 +34,11 @@ def parse_fortran_reals(line: str) -> Tuple[List[float], List[str]]:
             except ValueError:
                 floats.append(0.0)
 
+    # If line was truncated, pad out the raw_strings to 6 explicitly so serialization doesn't shift
+    while len(raw_strings) < 6:
+        raw_strings.append("")
+        floats.append(0.0)
+
     return floats, raw_strings
 
 def parse_fortran_ints(line: str) -> Tuple[List[int], List[str]]:
@@ -60,6 +65,10 @@ def parse_fortran_ints(line: str) -> Tuple[List[int], List[str]]:
                 ints.append(val)
             except ValueError:
                 ints.append(0)
+
+    while len(raw_strings) < 6:
+        raw_strings.append("")
+        ints.append(0)
 
     return ints, raw_strings
 

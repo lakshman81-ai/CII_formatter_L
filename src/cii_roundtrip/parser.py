@@ -66,9 +66,17 @@ class Parser:
         self.log.parse(f"Reading #$ VERSION block using FORTRAN format (2X, 2G13.6, I8)...")
         self.idx += 1
 
+        self.data.raw_sections["VERSION"] = []
+
+        # We need to capture the exact #$ VERSION header if we want it perfect
+        # But wait, self.idx is already passed the header. Let's just inject it.
+        self.data.raw_sections["VERSION"].append(self.lines[self.idx - 1].rstrip('\r\n'))
+
         # Line 1: versions
         if self.idx < len(self.lines):
             line1 = self.lines[self.idx]
+            # Strip trailing newlines but not space for raw matching
+            self.data.raw_sections["VERSION"].append(line1.rstrip('\r\n'))
             # format (2X, 2G13.6, I8) -> skip 2 chars, 13 chars, 13 chars, 8 chars
             if len(line1) >= 28:
                 major_version = line1[2:15].strip()
@@ -80,6 +88,7 @@ class Parser:
                 while self.idx < len(self.lines) and not self.lines[self.idx].strip().startswith("#$"):
                     # 2X, A75
                     text = self.lines[self.idx][2:77] if len(self.lines[self.idx]) > 2 else ""
+                    self.data.raw_sections["VERSION"].append(self.lines[self.idx].rstrip('\r\n'))
                     title_lines.append(text)
                     self.idx += 1
 
@@ -98,17 +107,24 @@ class Parser:
         self.log.parse("Reading #$ CONTROL block...")
         self.idx += 1
 
+        self.data.raw_sections["CONTROL"] = []
+        self.data.raw_sections["CONTROL"].append(self.lines[self.idx - 1].rstrip('\r\n'))
+
         if self.idx < len(self.lines):
             line1 = self.lines[self.idx]
+            self.data.raw_sections["CONTROL"].append(line1.rstrip('\r\n'))
             ints1, _ = parse_fortran_ints(line1)
             self.idx += 1
             line2 = self.lines[self.idx]
+            self.data.raw_sections["CONTROL"].append(line2.rstrip('\r\n'))
             ints2, _ = parse_fortran_ints(line2)
             self.idx += 1
             line3 = self.lines[self.idx]
+            self.data.raw_sections["CONTROL"].append(line3.rstrip('\r\n'))
             ints3, _ = parse_fortran_ints(line3)
             self.idx += 1
             line4 = self.lines[self.idx]
+            self.data.raw_sections["CONTROL"].append(line4.rstrip('\r\n'))
             ints4, _ = parse_fortran_ints(line4)
             self.idx += 1
 
@@ -156,31 +172,54 @@ class Parser:
             rel = []
             rel_strings = []
 
+            # For 1:1 matching, cache EXACT original lines so serializer doesn't guess
+            exact_rel_lines = []
+            exact_iel_lines = []
+
             # 9 lines of REAL data (53 elements formatted 2X, 6G13.6)
             for _ in range(9):
                 line = self.lines[self.idx]
+                exact_rel_lines.append(line.rstrip('\r\n'))
                 r, s = parse_fortran_reals(line)
                 rel.extend(r)
                 rel_strings.extend(s)
                 self.idx += 1
 
             # String Data: Element Name
-            string_name = parse_fortran_string(self.lines[self.idx])
+            # Save the EXACT string line to avoid padding guess errors in the serializer.
+            exact_string_name_line = self.lines[self.idx].rstrip('\r\n')
+            string_name = self.lines[self.idx].strip()
+            if len(string_name) > 0 and string_name[0].isdigit():
+                string_name = string_name.split(' ', 1)[-1].strip()
+            elif string_name == '0':
+                string_name = ""
             self.idx += 1
 
             # String Data: Line Number
-            line_number = parse_fortran_string(self.lines[self.idx])
+            exact_line_number_line = self.lines[self.idx].rstrip('\r\n')
+            line_number = self.lines[self.idx].strip()
+            if line_number == '10 unassigned':
+                pass # keep exact
+            elif len(line_number) > 0 and line_number[0].isdigit():
+                # Extract past the length digit
+                line_number = line_number.split(' ', 1)[-1].strip()
+            elif line_number == '0':
+                line_number = ""
             self.idx += 1
 
             # Color Data (2X, 6G13.6)
+            color_line_str = self.lines[self.idx].rstrip('\r\n')
             color_r, color_s = parse_fortran_reals(self.lines[self.idx])
+            rel_strings.extend(color_s) # Append the color strings to REL raw strings to perfectly reconstruct
             self.idx += 1
 
             # Pointers Data (3 lines of 2X, 6I13, total 18 values)
             iel = []
             iel_strings = []
             for _ in range(3):
-                i_vals, i_strs = parse_fortran_ints(self.lines[self.idx])
+                line = self.lines[self.idx]
+                exact_iel_lines.append(line.rstrip('\r\n'))
+                i_vals, i_strs = parse_fortran_ints(line)
                 iel.extend(i_vals)
                 iel_strings.extend(i_strs)
                 self.idx += 1
@@ -205,7 +244,12 @@ class Parser:
                     color_line=color_r,
                     iel=iel,
                     raw_rel_strings=rel_strings,
-                    raw_iel_strings=iel_strings
+                    raw_iel_strings=iel_strings,
+                    exact_rel_lines=exact_rel_lines,
+                    exact_string_name_line=exact_string_name_line,
+                    exact_line_number_line=exact_line_number_line,
+                    exact_color_line=color_line_str,
+                    exact_iel_lines=exact_iel_lines
                 )
                 elements.append(el_block)
             else:
@@ -227,25 +271,12 @@ class Parser:
                 self.idx += 1
                 self.data.aux_data[aux_type] = []
 
-                # We simply read rows of floats until another `#$` line
-                # Note: true implementation needs specific counts per aux type,
-                # but to be robust to varying neutral files we read all floats
-                # until the next header, preserving lines exactly.
                 while self.idx < len(self.lines) and not self.lines[self.idx].strip().startswith("#$"):
-                    # Just grab line
-                    data_line = self.lines[self.idx]
+                    # Just grab EXACT line
+                    data_line = self.lines[self.idx].rstrip('\r\n')
 
-                    # Distinguish between REAL format and STRING format
-                    # e.g., Restraints have Strings
-                    if "unassigned" in data_line.lower() or "    " + str(10) in data_line or len(data_line.strip()) == 0:
-                        # Strings/Labels
-                        self.data.aux_data[aux_type].append({"type": "string", "raw": data_line.replace('\n','')})
-                    else:
-                        r, s = parse_fortran_reals(data_line)
-                        if r:
-                            self.data.aux_data[aux_type].append({"type": "reals", "values": r, "raw": s})
-                        else:
-                            self.data.aux_data[aux_type].append({"type": "raw", "raw": data_line.replace('\n','')})
+                    # We store it purely as raw to prevent parser/re-serialization shifts
+                    self.data.aux_data[aux_type].append({"type": "raw", "raw": data_line})
                     self.idx += 1
             else:
                 self.idx += 1
@@ -256,16 +287,18 @@ class Parser:
 
         # Read until Units
         self.data.raw_sections["MISCEL_1"] = []
+        self.data.raw_sections["MISCEL_1"].append(self.lines[self.idx - 1].rstrip('\r\n'))
         while self.idx < len(self.lines) and not self.lines[self.idx].strip().startswith("#$ UNITS"):
-            self.data.raw_sections["MISCEL_1"].append(self.lines[self.idx])
+            self.data.raw_sections["MISCEL_1"].append(self.lines[self.idx].rstrip('\r\n'))
             self.idx += 1
 
     def _parse_units(self):
         self.log.parse("Reading #$ UNITS block...")
         self.idx += 1
         self.data.raw_sections["UNITS"] = []
+        self.data.raw_sections["UNITS"].append(self.lines[self.idx - 1].rstrip('\r\n'))
         while self.idx < len(self.lines) and not self.lines[self.idx].strip().startswith("#$ COORDS") and self.idx < len(self.lines):
-            self.data.raw_sections["UNITS"].append(self.lines[self.idx])
+            self.data.raw_sections["UNITS"].append(self.lines[self.idx].rstrip('\r\n'))
             self.idx += 1
 
     def _parse_coords(self):
@@ -273,9 +306,10 @@ class Parser:
         self.idx += 1
 
         self.data.raw_sections["COORDS"] = []
+        self.data.raw_sections["COORDS"].append(self.lines[self.idx - 1].rstrip('\r\n'))
         if self.idx < len(self.lines):
             line = self.lines[self.idx]
-            self.data.raw_sections["COORDS"].append(line)
+            self.data.raw_sections["COORDS"].append(line.rstrip('\r\n'))
 
             nxyz, _ = parse_fortran_ints(line)
             count = nxyz[0] if nxyz else 0
@@ -285,7 +319,7 @@ class Parser:
             for _ in range(count):
                 if self.idx < len(self.lines):
                     l = self.lines[self.idx]
-                    self.data.raw_sections["COORDS"].append(l)
+                    self.data.raw_sections["COORDS"].append(l.rstrip('\r\n'))
                     # Format (2X, I13, 3F13.4)
                     i_val, _ = parse_fortran_ints(l[:15])
                     r_val, _ = parse_fortran_reals(l[15:])

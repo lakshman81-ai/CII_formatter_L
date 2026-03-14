@@ -23,8 +23,12 @@ def main():
     recon_parser.add_argument("--optimize", action="store_true", help="Run format optimization loop")
     recon_parser.add_argument("--report", required=False, help="Output JSON report file")
 
-    # UI Command
+    # TUI Command
     ui_parser = subparsers.add_parser("tui", help="Launch ASCII Dashboard")
+
+    # Web Command
+    web_parser = subparsers.add_parser("web", help="Launch Web Interface")
+    web_parser.add_argument("--port", type=int, default=5000, help="Port to run the web server on")
 
     args = parser.parse_args()
 
@@ -32,6 +36,10 @@ def main():
         print(f"Loading {args.input}...")
         p = Parser(args.input, n1_allocation=2000)
         data = p.parse()
+
+        if args.table:
+            print(f"Exporting table to {args.table}...")
+            generate_custom_csv(data, export_path=args.table)
 
         if args.table_in:
             print(f"Importing table {args.table_in} over {args.input} base data...")
@@ -41,10 +49,6 @@ def main():
         if args.optimize:
             print("Running Optimization Loop...")
             data, opt_report = run_optimization_loop(data)
-
-        if args.table:
-            print(f"Exporting table to {args.table}...")
-            generate_custom_csv(data, export_path=args.table)
 
         print(f"Serializing to {args.out}...")
         serialize_to_cii(data, args.out)
@@ -72,6 +76,10 @@ def main():
         from src.cii_roundtrip.tui import DashboardApp
         app = DashboardApp()
         app.run()
+    elif args.command == "web":
+        from src.cii_roundtrip.web.app import app as web_app
+        print(f"Starting web interface on port {args.port}...")
+        web_app.run(host="0.0.0.0", port=args.port, debug=True)
     else:
         parser.print_help()
 

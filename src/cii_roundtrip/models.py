@@ -42,6 +42,13 @@ class ElementBlock(BaseModel):
     raw_rel_strings: List[str] = []
     raw_iel_strings: List[str] = []
 
+    # EXACT LINE CACHES for zero-byte match
+    exact_rel_lines: List[str] = []
+    exact_string_name_line: str = ""
+    exact_line_number_line: str = ""
+    exact_color_line: str = ""
+    exact_iel_lines: List[str] = []
+
 class Hanger(BaseModel):
     stiffness: float
     allow_var: float
